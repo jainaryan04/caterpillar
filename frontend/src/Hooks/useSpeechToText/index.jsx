@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const useSpeechToText = (options = {}) => {
     const [isListening, setIsListening] = useState(false);
@@ -18,19 +18,12 @@ const useSpeechToText = (options = {}) => {
         recognition.lang = options.lang || "en-US";
         recognition.continuous = options.continuous || false;
 
-        if ("webkitSpeechGrammarList" in window) {
-            const grammar = "JSGF V1.0; grammar punctuation; public <punc> = . | , | ? | ! | ; | : ;";
-            const speechRecognitionList = new window.webkitSpeechGrammarList();
-            speechRecognitionList.addFromString(grammar, 1);
-            recognition.grammars = speechRecognitionList;
-        }
-
         recognition.onresult = (event) => {
-            let text = "";
-            for (let i = 0; i < event.results.length; i++) {
-                text += event.results[i][0].transcript;
+            let interimTranscript = "";
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                interimTranscript += event.results[i][0].transcript;
             }
-            setTranscript(text);
+            setTranscript(prevTranscript => prevTranscript + interimTranscript);
         };
 
         recognition.onerror = (event) => {
@@ -39,7 +32,6 @@ const useSpeechToText = (options = {}) => {
 
         recognition.onend = () => {
             setIsListening(false);
-            setTranscript(""); // Reset transcript after stopping
         };
 
         return () => {
@@ -50,6 +42,7 @@ const useSpeechToText = (options = {}) => {
     const startListening = () => {
         if (recognitionRef.current && !isListening) {
             recognitionRef.current.start();
+            setTranscript("");  // Reset transcript when starting listening
             setIsListening(true);
         }
     };
@@ -61,11 +54,16 @@ const useSpeechToText = (options = {}) => {
         }
     };
 
+    const resetTranscript = () => {
+        setTranscript("");  // Manually reset the transcript
+    };
+
     return {
         isListening,
         transcript,
         startListening,
         stopListening,
+        resetTranscript,
     };
 };
 

@@ -1,11 +1,18 @@
 const express = require('express');
-const app = express();
-const port = process.env.PORT || 5000;
+const cors = require('cors');
 
-app.get('/', (req, res) => {
-  res.send('Hello World!');
+const app = express();
+const PORT = 5000;
+
+app.use(cors());
+app.use(express.json());
+
+app.post('/log', (req, res) => {
+    const { text } = req.body;
+    console.log('Logged Text:', text);
+    res.status(200).send('Text logged successfully');
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
 });
