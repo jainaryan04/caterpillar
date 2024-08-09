@@ -44,7 +44,6 @@ const Header = () => {
       setCurrentField((prevField) => (prevField + 1) % fields.length);
     }
     resetTranscript(); // Clear the transcript after processing
-    stopListening(); // Stop listening for the next field
   };
 
   const handleStartStop = () => {

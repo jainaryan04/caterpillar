@@ -14,17 +14,20 @@ const useSpeechToText = (options = {}) => {
         recognitionRef.current = new window.webkitSpeechRecognition();
         const recognition = recognitionRef.current;
 
-        recognition.interimResults = options.interimResults || true;
+        recognition.interimResults = options.interimResults || false;
         recognition.lang = options.lang || "en-US";
         recognition.continuous = options.continuous || false;
 
         recognition.onresult = (event) => {
-            let interimTranscript = "";
+            let finalTranscript = "";
             for (let i = event.resultIndex; i < event.results.length; i++) {
-                interimTranscript += event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript;
+                }
             }
-            setTranscript(prevTranscript => prevTranscript + interimTranscript);
+            setTranscript(finalTranscript);
         };
+        
 
         recognition.onerror = (event) => {
             console.error("Speech recognition error:", event.error);

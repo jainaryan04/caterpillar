@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import useSpeechToText from '../Hooks/useSpeechToText';
 
-const Header = () => {
+const Tyre = () => {
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [currentField, setCurrentField] = useState(0);
   const [formData, setFormData] = useState({
-    truckSerialNo: '',
-    model: '',
-    inspectionId: '',
-    inspectorName: '',
-    inspectionEmployeeID: '',
-    location: '',
-    serviceMeterHours: '',
-    customerCompanyName: '',
-    catCustomerID: '',
+    pressltft: '',
+    pressrtft: '',
+    pressltrr: '',
+    pressrtrr: '',
+    condltft: '',
+    condrtft: '',
+    condltrr: '',
+    condrtrr: '',
+    summary: '',
   });
 
   const { isListening, transcript, startListening, stopListening, resetTranscript } = useSpeechToText({ continuous: true });
@@ -33,18 +33,33 @@ const Header = () => {
   }, [transcript]);
 
   const moveToNextField = () => {
-    const cleanedTranscript = transcript.replace(/okay/gi, '').trim();
-    if (cleanedTranscript) {
-      const fields = Object.keys(formData);
-      const updatedFormData = {
-        ...formData,
-        [fields[currentField]]: cleanedTranscript,
-      };
-      setFormData(updatedFormData);
-      setCurrentField((prevField) => (prevField + 1) % fields.length);
+    const cleanedTranscript = transcript.replace(/okay/gi, '').trim().toLowerCase();
+    const fields = Object.keys(formData);
+    const currentFieldKey = fields[currentField];
+
+    if (currentFieldKey.includes('cond')) {
+      // Handle radio button field (Tire condition)
+      let conditionValue;
+      if (cleanedTranscript.includes('good')) {
+        conditionValue = 'Good';
+      } else if (cleanedTranscript.includes('ok')) {
+        conditionValue = 'Ok';
+      } else if (cleanedTranscript.includes('needs replacement')) {
+        conditionValue = 'Needs Replacement';
+      }
+
+      if (conditionValue) {
+        setFormData({ ...formData, [currentFieldKey]: conditionValue });
+        setCurrentField((prevField) => (prevField + 1) % fields.length);
+      }
+    } else {
+      // Handle text input field (Tire pressure)
+      if (cleanedTranscript) {
+        setFormData({ ...formData, [currentFieldKey]: cleanedTranscript });
+        setCurrentField((prevField) => (prevField + 1) % fields.length);
+      }
     }
     resetTranscript(); // Clear the transcript after processing
-    stopListening(); // Stop listening for the next field
   };
 
   const handleStartStop = () => {
@@ -55,68 +70,173 @@ const Header = () => {
     }
   };
 
+  const handleRadioChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
   return (
     <div>
       <form>
         <textarea
-          placeholder="Truck Serial No"
-          value={formData.truckSerialNo}
+          placeholder="Pressure for Left Front"
+          value={formData.pressltft}
           disabled={currentField !== 0}
-          onChange={(e) => setFormData({ ...formData, truckSerialNo: e.target.value })}
+          onChange={(e) => setFormData({ ...formData, pressltft: e.target.value })}
           rows={3}
         /><br />
         <textarea
-          placeholder="Model"
-          value={formData.model}
+          placeholder="Pressure for Right Front"
+          value={formData.pressrtft}
           disabled={currentField !== 1}
-          onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+          onChange={(e) => setFormData({ ...formData, pressrtft: e.target.value })}
           rows={3}
         /><br />
-        <p>Inspection Id - {formData.inspectionId}</p>
         <textarea
-          placeholder="Inspector Name"
-          value={formData.inspectorName}
+          placeholder="Pressure for Right Rear"
+          value={formData.pressrtrr}
           disabled={currentField !== 2}
-          onChange={(e) => setFormData({ ...formData, inspectorName: e.target.value })}
+          onChange={(e) => setFormData({ ...formData, pressrtrr: e.target.value })}
           rows={3}
         /><br />
         <textarea
-          placeholder="Inspection Employee ID"
-          value={formData.inspectionEmployeeID}
+          placeholder="Pressure for Left Rear"
+          value={formData.pressltrr}
           disabled={currentField !== 3}
-          onChange={(e) => setFormData({ ...formData, inspectionEmployeeID: e.target.value })}
+          onChange={(e) => setFormData({ ...formData, pressltrr: e.target.value })}
           rows={3}
         /><br />
-        <p>Date: {currentDateTime.toLocaleDateString()}</p>
-        <p>Time: {currentDateTime.toLocaleTimeString()}</p>
-        <textarea
-          placeholder="Location"
-          value={formData.location}
+
+        <label>Tire Condition for Left Front:</label><br />
+        <input
+          type="radio"
+          name="condltft"
+          value="Good"
+          checked={formData.condltft === 'Good'}
           disabled={currentField !== 4}
-          onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-          rows={3}
-        /><br />
-        <textarea
-          placeholder="Service Meter Hours"
-          value={formData.serviceMeterHours}
-          disabled={currentField !== 5}
-          onChange={(e) => setFormData({ ...formData, serviceMeterHours: e.target.value })}
-          rows={3}
-        /><br />
-        <textarea
-          placeholder="Customer / Company Name"
-          value={formData.customerCompanyName}
-          disabled={currentField !== 6}
-          onChange={(e) => setFormData({ ...formData, customerCompanyName: e.target.value })}
-          rows={3}
-        /><br />
-        <textarea
-          placeholder="CAT Customer ID"
-          value={formData.catCustomerID}
-          disabled={currentField !== 7}
-          onChange={(e) => setFormData({ ...formData, catCustomerID: e.target.value })}
-          rows={3}
-        /><br />
+          onChange={handleRadioChange}
+        /> Good<br />
+        <input
+          type="radio"
+          name="condltft"
+          value="Ok"
+          checked={formData.condltft === 'Ok'}
+          disabled={currentField !== 4}
+          onChange={handleRadioChange}
+        /> Ok<br />
+        <input
+          type="radio"
+          name="condltft"
+          value="Needs Replacement"
+          checked={formData.condltft === 'Needs Replacement'}
+          disabled={currentField !== 4}
+          onChange={handleRadioChange}
+        /> Needs Replacement<br />
+
+<label>Tire Condition for Right Front:</label><br />
+        <input
+          type="radio"
+          name="condrtft"
+          value="Good"
+          checked={formData.condltft === 'Good'}
+          disabled={currentField !== 4}
+          onChange={handleRadioChange}
+        /> Good<br />
+        <input
+          type="radio"
+          name="condrtft"
+          value="Ok"
+          checked={formData.condrtft === 'Ok'}
+          disabled={currentField !== 4}
+          onChange={handleRadioChange}
+        /> Ok<br />
+        <input
+          type="radio"
+          name="condrtft"
+          value="Needs Replacement"
+          checked={formData.condrtft === 'Needs Replacement'}
+          disabled={currentField !== 4}
+          onChange={handleRadioChange}
+        /> Needs Replacement<br />
+
+<label>Tire Condition for Left Rear:</label><br />
+        <input
+          type="radio"
+          name="condltrr"
+          value="Good"
+          checked={formData.condltft === 'Good'}
+          disabled={currentField !== 4}
+          onChange={handleRadioChange}
+        /> Good<br />
+        <input
+          type="radio"
+          name="condltrr"
+          value="Ok"
+          checked={formData.condltrr === 'Ok'}
+          disabled={currentField !== 4}
+          onChange={handleRadioChange}
+        /> Ok<br />
+        <input
+          type="radio"
+          name="condltrr"
+          value="Needs Replacement"
+          checked={formData.condltrr === 'Needs Replacement'}
+          disabled={currentField !== 4}
+          onChange={handleRadioChange}
+        /> Needs Replacement<br />
+
+<label>Tire Condition for Right Rear:</label><br />
+        <input
+          type="radio"
+          name="condrtrr"
+          value="Good"
+          checked={formData.condrtrr === 'Good'}
+          disabled={currentField !== 4}
+          onChange={handleRadioChange}
+        /> Good<br />
+        <input
+          type="radio"
+          name="condrtrr"
+          value="Ok"
+          checked={formData.condrtrr === 'Ok'}
+          disabled={currentField !== 4}
+          onChange={handleRadioChange}
+        /> Ok<br />
+        <input
+          type="radio"
+          name="condrtrr"
+          value="Needs Replacement"
+          checked={formData.condrtrr === 'Needs Replacement'}
+          disabled={currentField !== 4}
+          onChange={handleRadioChange}
+        /> Needs Replacement<br />
+
+<label>Tire Condition for Left Rear:</label><br />
+        <input
+          type="radio"
+          name="condrtrr"
+          value="Good"
+          checked={formData.condrtrr === 'Good'}
+          disabled={currentField !== 4}
+          onChange={handleRadioChange}
+        /> Good<br />
+        <input
+          type="radio"
+          name="condrtrr"
+          value="Ok"
+          checked={formData.condrtrr === 'Ok'}
+          disabled={currentField !== 4}
+          onChange={handleRadioChange}
+        /> Ok<br />
+        <input
+          type="radio"
+          name="condrtrr"
+          value="Needs Replacement"
+          checked={formData.condrtrr === 'Needs Replacement'}
+          disabled={currentField !== 4}
+          onChange={handleRadioChange}
+        /> Needs Replacement<br />
+
       </form>
       <button
         onClick={handleStartStop}
@@ -135,4 +255,4 @@ const Header = () => {
   );
 };
 
-export default Header;
+export default Tyre;
