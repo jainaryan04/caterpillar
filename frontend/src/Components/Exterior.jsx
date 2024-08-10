@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import useSpeechToText from '../Hooks/useSpeechToText';
+import { useNavigate } from 'react-router-dom';
 
 const Exterior = () => {
+  
   const [currentField, setCurrentField] = useState(0);
   const [formData, setFormData] = useState({
     exteriorDamage: '',
@@ -10,20 +12,20 @@ const Exterior = () => {
   });
 
   const { isListening, transcript, startListening, stopListening, resetTranscript } = useSpeechToText({ continuous: true });
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (isListening && transcript.toLowerCase().includes('okay')) {
+    if (isListening && transcript.toLowerCase().includes('record')) {
       moveToNextField();
     }
-  }, [transcript]);
+  }, [transcript, isListening]);
 
   const moveToNextField = () => {
-    const cleanedTranscript = transcript.replace(/okay/gi, '').trim().toLowerCase();
+    const cleanedTranscript = transcript.replace(/record/gi, '').trim().toLowerCase();
     const fields = Object.keys(formData);
     const currentFieldKey = fields[currentField];
 
     if (currentFieldKey === 'exteriorDamage' || currentFieldKey === 'oilLeakSuspension') {
-      // Handle radio button fields
       let value;
       if (cleanedTranscript.includes('yes')) {
         value = 'Yes';
@@ -36,13 +38,13 @@ const Exterior = () => {
         setCurrentField((prevField) => (prevField + 1) % fields.length);
       }
     } else {
-      // Handle text input fields
       if (cleanedTranscript) {
         setFormData({ ...formData, [currentFieldKey]: cleanedTranscript });
         setCurrentField((prevField) => (prevField + 1) % fields.length);
       }
     }
     resetTranscript(); // Clear the transcript after processing
+    checkIfFormComplete(formData, currentField, fields.length);
   };
 
   const handleStartStop = () => {
@@ -53,10 +55,13 @@ const Exterior = () => {
     }
   };
 
-  const checkIfFormComplete = (updatedData, nextFieldIndex, totalFields) => {
+  const checkIfFormComplete = (updatedData, currentIndex, totalFields) => {
     const allFieldsFilled = Object.values(updatedData).every(value => value !== '');
-    if (allFieldsFilled) {
+    if (currentIndex === totalFields - 1 && allFieldsFilled) {
+      console.log("Form completed successfully");
       sendDataToBackend(updatedData);
+    } else {
+      console.log("Form is not complete yet");
     }
   };
 
@@ -69,11 +74,11 @@ const Exterior = () => {
         },
         body: JSON.stringify(data)
       });
-      
+
       if (response.ok) {
         const responseData = await response.json();
         console.log('Data successfully sent to the backend:', responseData);
-        // Optionally, you can reset the form or provide user feedback here
+        navigate('/brake'); // Navigate to the next page or component
       } else {
         console.error('Failed to send data to the backend:', response.statusText);
       }

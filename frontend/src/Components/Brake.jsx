@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import useSpeechToText from '../Hooks/useSpeechToText';
+import { useNavigate } from 'react-router-dom';
 
 const Brakes = () => {
+  const navigate=useNavigate();
   const [currentField, setCurrentField] = useState(0);
   const [formData, setFormData] = useState({
     brakeFluidLevel: '',
@@ -14,19 +16,22 @@ const Brakes = () => {
   const { isListening, transcript, startListening, stopListening, resetTranscript } = useSpeechToText({ continuous: true });
 
   useEffect(() => {
-    if (isListening && transcript.toLowerCase().includes('okay')) {
+    if (isListening && transcript.toLowerCase().includes('record')) {
+      console.log('Detected "okay" in transcript');
       moveToNextField();
     }
   }, [transcript]);
 
   const moveToNextField = () => {
-    const cleanedTranscript = transcript.replace(/okay/gi, '').trim().toLowerCase();
+    const cleanedTranscript = transcript.replace(/record/gi, '').trim().toLowerCase();
     const fields = Object.keys(formData);
     const currentFieldKey = fields[currentField];
 
+    console.log(`Processing field: ${currentFieldKey}, transcript: ${cleanedTranscript}`);
+
+    let value;
     if (['brakeFluidLevel', 'brakeConditionFront', 'brakeConditionRear', 'emergencyBrake'].includes(currentFieldKey)) {
       // Handle radio button fields
-      let value;
       if (cleanedTranscript.includes('good')) {
         value = 'Good';
       } else if (cleanedTranscript.includes('ok')) {
@@ -38,13 +43,25 @@ const Brakes = () => {
       }
 
       if (value) {
-        setFormData({ ...formData, [currentFieldKey]: value });
+        console.log(`Setting ${currentFieldKey} to ${value}`);
+        setFormData((prevData) => {
+          const updatedData = { ...prevData, [currentFieldKey]: value };
+          const nextFieldIndex = (currentField + 1) % fields.length;
+          checkIfFormComplete(updatedData, nextFieldIndex, fields.length);
+          return updatedData;
+        });
         setCurrentField((prevField) => (prevField + 1) % fields.length);
       }
     } else {
       // Handle text input fields
       if (cleanedTranscript) {
-        setFormData({ ...formData, [currentFieldKey]: cleanedTranscript });
+        console.log(`Setting ${currentFieldKey} to ${cleanedTranscript}`);
+        setFormData((prevData) => {
+          const updatedData = { ...prevData, [currentFieldKey]: cleanedTranscript };
+          const nextFieldIndex = (currentField + 1) % fields.length;
+          checkIfFormComplete(updatedData, nextFieldIndex, fields.length);
+          return updatedData;
+        });
         setCurrentField((prevField) => (prevField + 1) % fields.length);
       }
     }
@@ -53,8 +70,10 @@ const Brakes = () => {
 
   const handleStartStop = () => {
     if (!isListening) {
+      console.log('Starting speech recognition');
       startListening();
     } else {
+      console.log('Stopping speech recognition');
       stopListening();
     }
   };
@@ -62,7 +81,10 @@ const Brakes = () => {
   const checkIfFormComplete = (updatedData, nextFieldIndex, totalFields) => {
     const allFieldsFilled = Object.values(updatedData).every(value => value !== '');
     if (allFieldsFilled) {
+      console.log('All fields filled. Sending data to the backend.');
       sendDataToBackend(updatedData);
+    } else {
+      console.log(`Field ${nextFieldIndex + 1} of ${totalFields} filled.`);
     }
   };
 
@@ -75,11 +97,11 @@ const Brakes = () => {
         },
         body: JSON.stringify(data)
       });
-      
+
       if (response.ok) {
         const responseData = await response.json();
         console.log('Data successfully sent to the backend:', responseData);
-        // Optionally, you can reset the form or provide user feedback here
+        navigate('/engine');
       } else {
         console.error('Failed to send data to the backend:', response.statusText);
       }

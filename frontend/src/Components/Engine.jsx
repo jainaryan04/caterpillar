@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import useSpeechToText from '../Hooks/useSpeechToText';
+import { useNavigate } from 'react-router-dom';
 
 const Engine = () => {
+  const navigate=useNavigate();
   const [currentField, setCurrentField] = useState(0);
   const [formData, setFormData] = useState({
     rustDamage: '',
@@ -16,15 +18,18 @@ const Engine = () => {
   const { isListening, transcript, startListening, stopListening, resetTranscript } = useSpeechToText({ continuous: true });
 
   useEffect(() => {
-    if (isListening && transcript.toLowerCase().includes('okay')) {
+    if (isListening && transcript.toLowerCase().includes('record')) {
+      console.log('Triggering moveToNextField due to "okay" in transcript');
       moveToNextField();
     }
   }, [transcript]);
 
   const moveToNextField = () => {
-    const cleanedTranscript = transcript.replace(/okay/gi, '').trim().toLowerCase();
+    const cleanedTranscript = transcript.replace(/record/gi, '').trim().toLowerCase();
     const fields = Object.keys(formData);
     const currentFieldKey = fields[currentField];
+    console.log(`Current field: ${currentFieldKey}`);
+    console.log(`Cleaned transcript: ${cleanedTranscript}`);
 
     if (currentFieldKey.includes('Condition') || currentFieldKey.includes('Leak')) {
       let conditionValue;
@@ -39,8 +44,10 @@ const Engine = () => {
       }
 
       if (conditionValue) {
+        console.log(`Setting ${currentFieldKey} to ${conditionValue}`);
         setFormData({ ...formData, [currentFieldKey]: conditionValue });
         setCurrentField((prevField) => (prevField + 1) % fields.length);
+        checkIfFormComplete({ ...formData, [currentFieldKey]: conditionValue });
       }
     } else if (currentFieldKey.includes('Color')) {
       let colorValue;
@@ -53,13 +60,17 @@ const Engine = () => {
       }
 
       if (colorValue) {
+        console.log(`Setting ${currentFieldKey} to ${colorValue}`);
         setFormData({ ...formData, [currentFieldKey]: colorValue });
         setCurrentField((prevField) => (prevField + 1) % fields.length);
+        checkIfFormComplete({ ...formData, [currentFieldKey]: colorValue });
       }
     } else {
       if (cleanedTranscript) {
+        console.log(`Setting ${currentFieldKey} to ${cleanedTranscript}`);
         setFormData({ ...formData, [currentFieldKey]: cleanedTranscript });
         setCurrentField((prevField) => (prevField + 1) % fields.length);
+        checkIfFormComplete({ ...formData, [currentFieldKey]: cleanedTranscript });
       }
     }
     resetTranscript();
@@ -67,19 +78,23 @@ const Engine = () => {
 
   const handleStartStop = () => {
     if (!isListening) {
+      console.log('Starting speech recognition');
       startListening();
     } else {
+      console.log('Stopping speech recognition');
       stopListening();
     }
   };
 
   const handleRadioChange = (e) => {
     const { name, value } = e.target;
+    console.log(`Manual change of ${name} to ${value}`);
     setFormData({ ...formData, [name]: value });
   };
 
-  const checkIfFormComplete = (updatedData, nextFieldIndex, totalFields) => {
+  const checkIfFormComplete = (updatedData) => {
     const allFieldsFilled = Object.values(updatedData).every(value => value !== '');
+    console.log('Form completion status:', allFieldsFilled);
     if (allFieldsFilled) {
       sendDataToBackend(updatedData);
     }
@@ -255,6 +270,7 @@ const Engine = () => {
         }}>
         {isListening ? 'Stop Listening' : 'Start Speaking'}
       </button>
+
     </div>
   );
 };

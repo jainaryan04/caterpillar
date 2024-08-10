@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import useSpeechToText from '../Hooks/useSpeechToText';
+import { useNavigate } from 'react-router-dom';
 
-const Header = () => {
+
+const Header = ({onFormFilled}) => {
+  const navigate=useNavigate();
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [currentField, setCurrentField] = useState(0);
   const [formData, setFormData] = useState({
     truckSerialNo: '',
     model: '',
-    inspectionId: '',
     inspectorName: '',
     inspectionEmployeeID: '',
     location: '',
@@ -27,23 +29,75 @@ const Header = () => {
   }, []);
 
   useEffect(() => {
-    if (isListening && transcript.toLowerCase().includes('okay')) {
+    if (isListening && transcript.toLowerCase().includes('record')) {
       moveToNextField();
     }
-  }, [transcript]);
+  }, [transcript, isListening]);
+
+
+  const sendDataToBackend = async (data) => {
+    console.log("in send function");
+    try {
+      const response = await fetch('http://localhost:5000/api/header', { // Corrected URL
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      });
+  
+      if (response.ok) {
+        const responseData = await response.json();
+        console.log('Data successfully sent to the backend:', responseData);
+        navigate('/tyre');
+      } else {
+        console.error('Failed to send data to the backend:', response.statusText);
+      }
+    } catch (error) {
+      console.error('An error occurred while sending data to the backend:', error);
+    }
+  };
 
   const moveToNextField = () => {
-    const cleanedTranscript = transcript.replace(/okay/gi, '').trim();
-    if (cleanedTranscript) {
-      const fields = Object.keys(formData);
-      const updatedFormData = {
-        ...formData,
-        [fields[currentField]]: cleanedTranscript,
-      };
-      setFormData(updatedFormData);
-      setCurrentField((prevField) => (prevField + 1) % fields.length);
+    const cleanedTranscript = transcript ? transcript.replace(/record/gi, '').trim().toLowerCase() : '';
+  
+    if (!cleanedTranscript) {
+      console.log('Transcript is empty or not recognized.');
+      return;
     }
-    resetTranscript(); // Clear the transcript after processing
+  
+    const fields = Object.keys(formData);
+    const currentFieldKey = fields[currentField];
+  
+
+      if (cleanedTranscript) {
+        setFormData(prevFormData => {
+          const updatedData = {
+            ...prevFormData,
+            [currentFieldKey]: cleanedTranscript,
+          };
+          return updatedData;
+        });
+        setCurrentField(prevField => prevField + 1);
+        resetTranscript(); // Clear the transcript after processing
+      } else {
+        console.log('Transcript not recognized for text input');
+      }
+    
+  
+    checkIfFormComplete(currentField);
+  };
+
+  const checkIfFormComplete = (prev) => {
+    console.log("in form complete function");
+    const allFieldsFilled = Object.values(formData).every(value => value !== '');
+    if (prev==7) {
+      console.log("form completed");
+      sendDataToBackend(formData);
+      navigate('/tyre')
+    } else {
+      console.log("form is not complete");
+    }
   };
 
   const handleStartStop = () => {
@@ -54,8 +108,28 @@ const Header = () => {
     }
   };
 
+  const [inspectionId, setInspectionId] = useState(null);
+
+    useEffect(() => {
+        const fetchInspectionId = async () => {
+            try {
+                const response = await fetch('http://localhost:5000/id');
+                const data = await response.json();
+                setInspectionId(data.index);
+            } catch (error) {
+                console.error('Error fetching inspection ID:', error);
+            }
+        };
+
+        fetchInspectionId();
+    }, []);
+
+
   return (
     <div>
+      <p>Inspection Id: {inspectionId}</p>
+      <p>Date: {currentDateTime.toLocaleDateString()}</p>
+        <p>Time: {currentDateTime.toLocaleTimeString()}</p>
       <form>
         <textarea
           placeholder="Truck Serial No"
@@ -71,7 +145,7 @@ const Header = () => {
           onChange={(e) => setFormData({ ...formData, model: e.target.value })}
           rows={3}
         /><br />
-        <p>Inspection Id - {formData.inspectionId}</p>
+        
         <textarea
           placeholder="Inspector Name"
           value={formData.inspectorName}
@@ -86,8 +160,7 @@ const Header = () => {
           onChange={(e) => setFormData({ ...formData, inspectionEmployeeID: e.target.value })}
           rows={3}
         /><br />
-        <p>Date: {currentDateTime.toLocaleDateString()}</p>
-        <p>Time: {currentDateTime.toLocaleTimeString()}</p>
+        
         <textarea
           placeholder="Location"
           value={formData.location}

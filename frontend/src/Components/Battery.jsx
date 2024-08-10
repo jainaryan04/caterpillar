@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import useSpeechToText from '../Hooks/useSpeechToText';
+import { useNavigate } from 'react-router-dom';
 
 const Battery = () => {
+  
   const [currentField, setCurrentField] = useState(0);
   const [formData, setFormData] = useState({
     batteryMake: '',
@@ -14,64 +16,76 @@ const Battery = () => {
   });
 
   const { isListening, transcript, startListening, stopListening, resetTranscript } = useSpeechToText({ continuous: true });
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (isListening && transcript.toLowerCase().includes('okay')) {
+    if (isListening && transcript.toLowerCase().includes('record')) {
       moveToNextField();
     }
-  }, [transcript]);
+  }, [transcript, isListening]);
 
   const moveToNextField = () => {
-    const cleanedTranscript = transcript.replace(/okay/gi, '').trim().toLowerCase();
+    const cleanedTranscript = transcript ? transcript.replace(/record/gi, '').trim().toLowerCase() : '';
+
+    if (!cleanedTranscript) {
+      console.log('Transcript is empty or not recognized.');
+      return;
+    }
+
     const fields = Object.keys(formData);
     const currentFieldKey = fields[currentField];
 
     if (currentFieldKey.includes('batteryWaterLevel') || currentFieldKey.includes('batteryCondition') || currentFieldKey.includes('batteryLeak')) {
-      // Handle radio button fields
-      let value;
-      if (cleanedTranscript.includes('good')) {
-        value = 'Good';
-      } else if (cleanedTranscript.includes('ok')) {
-        value = 'Ok';
-      } else if (cleanedTranscript.includes('low')) {
-        value = 'Low';
+      let conditionValue = '';
+
+      if (cleanedTranscript.includes('good') || cleanedTranscript.includes('1') || cleanedTranscript.includes('one')) {
+        conditionValue = 'Good';
+      } else if (cleanedTranscript.includes('ok') || cleanedTranscript.includes('okay') || cleanedTranscript.includes('2') || cleanedTranscript.includes('to') || cleanedTranscript.includes('two')) {
+        conditionValue = 'Ok';
+      } else if (cleanedTranscript.includes('low') || cleanedTranscript.includes('3') || cleanedTranscript.includes('three')) {
+        conditionValue = 'Low';
       } else if (cleanedTranscript.includes('yes')) {
-        value = 'Yes';
+        conditionValue = 'Yes';
       } else if (cleanedTranscript.includes('no')) {
-        value = 'No';
+        conditionValue = 'No';
       }
 
-      if (value) {
-        setFormData({ ...formData, [currentFieldKey]: value });
-        setCurrentField((prevField) => (prevField + 1) % fields.length);
+      if (conditionValue) {
+        handleRadioChange({
+          target: {
+            name: currentFieldKey,
+            value: conditionValue
+          }
+        });
+        resetTranscript(); // Clear the transcript after processing
+      } else {
+        console.log('Condition value not recognized or empty');
       }
     } else {
-      // Handle text input fields
       if (cleanedTranscript) {
-        setFormData({ ...formData, [currentFieldKey]: cleanedTranscript });
-        setCurrentField((prevField) => (prevField + 1) % fields.length);
+        setFormData(prevFormData => {
+          const updatedData = {
+            ...prevFormData,
+            [currentFieldKey]: cleanedTranscript,
+          };
+          return updatedData;
+        });
+        setCurrentField(prevField => prevField + 1);
+        resetTranscript(); // Clear the transcript after processing
+      } else {
+        console.log('Transcript not recognized for text input');
       }
     }
-    resetTranscript(); // Clear the transcript after processing
+
+    checkIfFormComplete(currentField);
   };
 
-  const handleStartStop = () => {
-    if (!isListening) {
-      startListening();
+  const checkIfFormComplete = (prev) => {
+    const allFieldsFilled = Object.values(formData).every(value => value !== '');
+    if (prev === 6) { // Adjust this based on the number of fields
+      sendDataToBackend(formData);
     } else {
-      stopListening();
-    }
-  };
-
-  const handleRadioChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const checkIfFormComplete = (updatedData, nextFieldIndex, totalFields) => {
-    const allFieldsFilled = Object.values(updatedData).every(value => value !== '');
-    if (allFieldsFilled) {
-      sendDataToBackend(updatedData);
+      console.log('Form is not complete');
     }
   };
 
@@ -84,17 +98,35 @@ const Battery = () => {
         },
         body: JSON.stringify(data)
       });
-      
+
       if (response.ok) {
         const responseData = await response.json();
         console.log('Data successfully sent to the backend:', responseData);
-        // Optionally, you can reset the form or provide user feedback here
+        navigate('/exterior'); // Assuming '/brakes' is the next component's route
       } else {
         console.error('Failed to send data to the backend:', response.statusText);
       }
     } catch (error) {
       console.error('An error occurred while sending data to the backend:', error);
     }
+  };
+
+  const handleStartStop = () => {
+    if (!isListening) {
+      startListening();
+    } else {
+      stopListening();
+    }
+  };
+
+  const handleRadioChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prevFormData => {
+      const updatedData = { ...prevFormData, [name]: value };
+      return updatedData;
+    });
+    setCurrentField(prevField => prevField + 1);
+    checkIfFormComplete(currentField);
   };
 
   return (

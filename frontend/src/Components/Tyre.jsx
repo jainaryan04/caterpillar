@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import useSpeechToText from '../Hooks/useSpeechToText';
 import { useNavigate } from 'react-router-dom';
 
-const Tyre = () => {
+const Tyre = ({ onFormFilled }) => {
+  const navigate = useNavigate();
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [currentField, setCurrentField] = useState(0);
   const [formData, setFormData] = useState({
@@ -14,11 +15,9 @@ const Tyre = () => {
     condrtft: '',
     condltrr: '',
     condrtrr: '',
-    summary: '',
   });
 
   const { isListening, transcript, startListening, stopListening, resetTranscript } = useSpeechToText({ continuous: true });
-  const navigate = useNavigate();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -29,32 +28,33 @@ const Tyre = () => {
   }, []);
 
   useEffect(() => {
-    if (isListening && transcript.toLowerCase().includes('okay')) {
+    if (isListening && transcript.toLowerCase().includes('record')) {
       moveToNextField();
     }
   }, [transcript, isListening]);
 
   const moveToNextField = () => {
-    const cleanedTranscript = transcript.replace(/okay/gi, '').trim().toLowerCase();
+    const cleanedTranscript = transcript ? transcript.replace(/record/gi, '').trim().toLowerCase() : '';
+
+    if (!cleanedTranscript) {
+      console.log('Transcript is empty or not recognized.');
+      return;
+    }
+
     const fields = Object.keys(formData);
     const currentFieldKey = fields[currentField];
-  
-    console.log("Transcript:", cleanedTranscript);
-    console.log("Current Field Key:", currentFieldKey);
-  
+
     if (currentFieldKey.includes('cond')) {
       let conditionValue = '';
-  
-      if (cleanedTranscript.includes('one') || cleanedTranscript.includes('1') || cleanedTranscript.includes('good')) {
+
+      if (cleanedTranscript.includes('good') || cleanedTranscript.includes('1') || cleanedTranscript.includes('one')) {
         conditionValue = 'Good';
-      } else if (cleanedTranscript.includes('two') || cleanedTranscript.includes('2') || cleanedTranscript.includes('ok') || cleanedTranscript.includes('to')) {
+      } else if (cleanedTranscript.includes('ok') || cleanedTranscript.includes('okay') || cleanedTranscript.includes('2') || cleanedTranscript.includes('two')) {
         conditionValue = 'Ok';
-      } else if (cleanedTranscript.includes('three') || cleanedTranscript.includes('3') || cleanedTranscript.includes('replacement')) {
+      } else if (cleanedTranscript.includes('replacement') || cleanedTranscript.includes('3') || cleanedTranscript.includes('three')) {
         conditionValue = 'Needs Replacement';
       }
-  
-      console.log("Condition Value:", conditionValue);
-  
+
       if (conditionValue) {
         handleRadioChange({
           target: {
@@ -62,8 +62,6 @@ const Tyre = () => {
             value: conditionValue
           }
         });
-        setCurrentField(prevField => prevField + 1);
-        resetTranscript(); // Clear the transcript after processing
       } else {
         console.log('Condition value not recognized or empty');
       }
@@ -77,40 +75,37 @@ const Tyre = () => {
           return updatedData;
         });
         setCurrentField(prevField => prevField + 1);
-        resetTranscript(); // Clear the transcript after processing
       } else {
         console.log('Transcript not recognized for text input');
       }
     }
-  
-    checkIfFormComplete(currentField + 1);
-  };
-  
 
-  const checkIfFormComplete = (currentField) => {
-    console.log("in form complete function")
+    resetTranscript(); // Clear the transcript after processing
+    checkIfFormComplete();
+  };
+
+  const checkIfFormComplete = () => {
     const allFieldsFilled = Object.values(formData).every(value => value !== '');
-    if (currentField==7) {
-      console.log("form completed")
+    if (allFieldsFilled) {
       sendDataToBackend(formData);
+      onFormFilled(); // Notify that form is filled
     }
   };
 
   const sendDataToBackend = async (data) => {
-    console.log("in send function");
     try {
-      const response = await fetch('http://localhost:5000/api/tyre', { // Corrected URL
+      const response = await fetch('http://localhost:5000/api/tyre', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data)
       });
-  
+
       if (response.ok) {
         const responseData = await response.json();
         console.log('Data successfully sent to the backend:', responseData);
-        navigate('/exterior');
+        navigate('/battery'); // Navigate to the next component
       } else {
         console.error('Failed to send data to the backend:', response.statusText);
       }
@@ -118,7 +113,6 @@ const Tyre = () => {
       console.error('An error occurred while sending data to the backend:', error);
     }
   };
-  
 
   const handleStartStop = () => {
     if (!isListening) {
@@ -135,8 +129,7 @@ const Tyre = () => {
       return updatedData;
     });
     setCurrentField(prevField => prevField + 1);
-    console.log(currentField)
-    checkIfFormComplete(currentField);
+    checkIfFormComplete();
   };
 
   return (
@@ -276,8 +269,8 @@ const Tyre = () => {
         /> Needs Replacement<br />
       </form>
 
-      <button type="button" onClick={handleStartStop}>
-        {isListening ? 'Stop Listening' : 'Start Listening'}
+      <button onClick={handleStartStop}>
+        {isListening ? 'Stop Listening' : 'Start Speaking'}
       </button>
     </div>
   );
