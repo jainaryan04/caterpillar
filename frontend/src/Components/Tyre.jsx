@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import useSpeechToText from '../Hooks/useSpeechToText';
+import { useNavigate } from 'react-router-dom';
 
 const Tyre = () => {
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
@@ -7,8 +8,8 @@ const Tyre = () => {
   const [formData, setFormData] = useState({
     pressltft: '',
     pressrtft: '',
-    pressltrr: '',
     pressrtrr: '',
+    pressltrr: '',
     condltft: '',
     condrtft: '',
     condltrr: '',
@@ -17,6 +18,7 @@ const Tyre = () => {
   });
 
   const { isListening, transcript, startListening, stopListening, resetTranscript } = useSpeechToText({ continuous: true });
+  const navigate = useNavigate();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -30,37 +32,93 @@ const Tyre = () => {
     if (isListening && transcript.toLowerCase().includes('okay')) {
       moveToNextField();
     }
-  }, [transcript]);
+  }, [transcript, isListening]);
 
   const moveToNextField = () => {
     const cleanedTranscript = transcript.replace(/okay/gi, '').trim().toLowerCase();
     const fields = Object.keys(formData);
     const currentFieldKey = fields[currentField];
-
+  
+    console.log("Transcript:", cleanedTranscript);
+    console.log("Current Field Key:", currentFieldKey);
+  
     if (currentFieldKey.includes('cond')) {
-      // Handle radio button field (Tire condition)
-      let conditionValue;
-      if (cleanedTranscript.includes('good')) {
+      let conditionValue = '';
+  
+      if (cleanedTranscript.includes('one') || cleanedTranscript.includes('1') || cleanedTranscript.includes('good')) {
         conditionValue = 'Good';
-      } else if (cleanedTranscript.includes('ok')) {
+      } else if (cleanedTranscript.includes('two') || cleanedTranscript.includes('2') || cleanedTranscript.includes('ok') || cleanedTranscript.includes('to')) {
         conditionValue = 'Ok';
-      } else if (cleanedTranscript.includes('needs replacement')) {
+      } else if (cleanedTranscript.includes('three') || cleanedTranscript.includes('3') || cleanedTranscript.includes('replacement')) {
         conditionValue = 'Needs Replacement';
       }
-
+  
+      console.log("Condition Value:", conditionValue);
+  
       if (conditionValue) {
-        setFormData({ ...formData, [currentFieldKey]: conditionValue });
-        setCurrentField((prevField) => (prevField + 1) % fields.length);
+        handleRadioChange({
+          target: {
+            name: currentFieldKey,
+            value: conditionValue
+          }
+        });
+        setCurrentField(prevField => prevField + 1);
+        resetTranscript(); // Clear the transcript after processing
+      } else {
+        console.log('Condition value not recognized or empty');
       }
     } else {
-      // Handle text input field (Tire pressure)
       if (cleanedTranscript) {
-        setFormData({ ...formData, [currentFieldKey]: cleanedTranscript });
-        setCurrentField((prevField) => (prevField + 1) % fields.length);
+        setFormData(prevFormData => {
+          const updatedData = {
+            ...prevFormData,
+            [currentFieldKey]: cleanedTranscript,
+          };
+          return updatedData;
+        });
+        setCurrentField(prevField => prevField + 1);
+        resetTranscript(); // Clear the transcript after processing
+      } else {
+        console.log('Transcript not recognized for text input');
       }
     }
-    resetTranscript(); // Clear the transcript after processing
+  
+    checkIfFormComplete(currentField + 1);
   };
+  
+
+  const checkIfFormComplete = (currentField) => {
+    console.log("in form complete function")
+    const allFieldsFilled = Object.values(formData).every(value => value !== '');
+    if (currentField==7) {
+      console.log("form completed")
+      sendDataToBackend(formData);
+    }
+  };
+
+  const sendDataToBackend = async (data) => {
+    console.log("in send function");
+    try {
+      const response = await fetch('http://localhost:5000/api/tyre', { // Corrected URL
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      });
+  
+      if (response.ok) {
+        const responseData = await response.json();
+        console.log('Data successfully sent to the backend:', responseData);
+        navigate('/exterior');
+      } else {
+        console.error('Failed to send data to the backend:', response.statusText);
+      }
+    } catch (error) {
+      console.error('An error occurred while sending data to the backend:', error);
+    }
+  };
+  
 
   const handleStartStop = () => {
     if (!isListening) {
@@ -72,7 +130,13 @@ const Tyre = () => {
 
   const handleRadioChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData(prevFormData => {
+      const updatedData = { ...prevFormData, [name]: value };
+      return updatedData;
+    });
+    setCurrentField(prevField => prevField + 1);
+    console.log(currentField)
+    checkIfFormComplete(currentField);
   };
 
   return (
@@ -133,13 +197,13 @@ const Tyre = () => {
           onChange={handleRadioChange}
         /> Needs Replacement<br />
 
-<label>Tire Condition for Right Front:</label><br />
+        <label>Tire Condition for Right Front:</label><br />
         <input
           type="radio"
           name="condrtft"
           value="Good"
-          checked={formData.condltft === 'Good'}
-          disabled={currentField !== 4}
+          checked={formData.condrtft === 'Good'}
+          disabled={currentField !== 5}
           onChange={handleRadioChange}
         /> Good<br />
         <input
@@ -147,7 +211,7 @@ const Tyre = () => {
           name="condrtft"
           value="Ok"
           checked={formData.condrtft === 'Ok'}
-          disabled={currentField !== 4}
+          disabled={currentField !== 5}
           onChange={handleRadioChange}
         /> Ok<br />
         <input
@@ -155,17 +219,17 @@ const Tyre = () => {
           name="condrtft"
           value="Needs Replacement"
           checked={formData.condrtft === 'Needs Replacement'}
-          disabled={currentField !== 4}
+          disabled={currentField !== 5}
           onChange={handleRadioChange}
         /> Needs Replacement<br />
 
-<label>Tire Condition for Left Rear:</label><br />
+        <label>Tire Condition for Left Rear:</label><br />
         <input
           type="radio"
           name="condltrr"
           value="Good"
-          checked={formData.condltft === 'Good'}
-          disabled={currentField !== 4}
+          checked={formData.condltrr === 'Good'}
+          disabled={currentField !== 6}
           onChange={handleRadioChange}
         /> Good<br />
         <input
@@ -173,7 +237,7 @@ const Tyre = () => {
           name="condltrr"
           value="Ok"
           checked={formData.condltrr === 'Ok'}
-          disabled={currentField !== 4}
+          disabled={currentField !== 6}
           onChange={handleRadioChange}
         /> Ok<br />
         <input
@@ -181,17 +245,17 @@ const Tyre = () => {
           name="condltrr"
           value="Needs Replacement"
           checked={formData.condltrr === 'Needs Replacement'}
-          disabled={currentField !== 4}
+          disabled={currentField !== 6}
           onChange={handleRadioChange}
         /> Needs Replacement<br />
 
-<label>Tire Condition for Right Rear:</label><br />
+        <label>Tire Condition for Right Rear:</label><br />
         <input
           type="radio"
           name="condrtrr"
           value="Good"
           checked={formData.condrtrr === 'Good'}
-          disabled={currentField !== 4}
+          disabled={currentField !== 7}
           onChange={handleRadioChange}
         /> Good<br />
         <input
@@ -199,7 +263,7 @@ const Tyre = () => {
           name="condrtrr"
           value="Ok"
           checked={formData.condrtrr === 'Ok'}
-          disabled={currentField !== 4}
+          disabled={currentField !== 7}
           onChange={handleRadioChange}
         /> Ok<br />
         <input
@@ -207,49 +271,13 @@ const Tyre = () => {
           name="condrtrr"
           value="Needs Replacement"
           checked={formData.condrtrr === 'Needs Replacement'}
-          disabled={currentField !== 4}
+          disabled={currentField !== 7}
           onChange={handleRadioChange}
         /> Needs Replacement<br />
-
-<label>Tire Condition for Left Rear:</label><br />
-        <input
-          type="radio"
-          name="condrtrr"
-          value="Good"
-          checked={formData.condrtrr === 'Good'}
-          disabled={currentField !== 4}
-          onChange={handleRadioChange}
-        /> Good<br />
-        <input
-          type="radio"
-          name="condrtrr"
-          value="Ok"
-          checked={formData.condrtrr === 'Ok'}
-          disabled={currentField !== 4}
-          onChange={handleRadioChange}
-        /> Ok<br />
-        <input
-          type="radio"
-          name="condrtrr"
-          value="Needs Replacement"
-          checked={formData.condrtrr === 'Needs Replacement'}
-          disabled={currentField !== 4}
-          onChange={handleRadioChange}
-        /> Needs Replacement<br />
-
       </form>
-      <button
-        onClick={handleStartStop}
-        style={{
-          padding: '10px 20px',
-          backgroundColor: isListening ? '#FF6347' : '#4CAF50',
-          color: '#fff',
-          border: 'none',
-          borderRadius: '5px',
-          cursor: 'pointer',
-          marginTop: '20px',
-        }}>
-        {isListening ? 'Stop Listening' : 'Start Speaking'}
+
+      <button type="button" onClick={handleStartStop}>
+        {isListening ? 'Stop Listening' : 'Start Listening'}
       </button>
     </div>
   );

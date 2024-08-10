@@ -68,6 +68,35 @@ const Battery = () => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const checkIfFormComplete = (updatedData, nextFieldIndex, totalFields) => {
+    const allFieldsFilled = Object.values(updatedData).every(value => value !== '');
+    if (allFieldsFilled) {
+      sendDataToBackend(updatedData);
+    }
+  };
+
+  const sendDataToBackend = async (data) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/battery', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      });
+      
+      if (response.ok) {
+        const responseData = await response.json();
+        console.log('Data successfully sent to the backend:', responseData);
+        // Optionally, you can reset the form or provide user feedback here
+      } else {
+        console.error('Failed to send data to the backend:', response.statusText);
+      }
+    } catch (error) {
+      console.error('An error occurred while sending data to the backend:', error);
+    }
+  };
+
   return (
     <div>
       <form>
