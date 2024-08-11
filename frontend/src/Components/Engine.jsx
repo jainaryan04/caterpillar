@@ -3,7 +3,7 @@ import useSpeechToText from '../Hooks/useSpeechToText';
 import { useNavigate } from 'react-router-dom';
 
 const Engine = () => {
-  const navigate=useNavigate();
+  const navigate = useNavigate();
   const [currentField, setCurrentField] = useState(0);
   const [formData, setFormData] = useState({
     rustDamage: '',
@@ -13,7 +13,9 @@ const Engine = () => {
     fluidColor: '',
     oilLeak: '',
     summary: '',
+    image: null, // Add this line to handle image uploads
   });
+  const [showImageUpload, setShowImageUpload] = useState(false); // Add this line to control the visibility of the upload input
 
   const { isListening, transcript, startListening, stopListening, resetTranscript } = useSpeechToText({ continuous: true });
 
@@ -30,6 +32,11 @@ const Engine = () => {
     const currentFieldKey = fields[currentField];
     console.log(`Current field: ${currentFieldKey}`);
     console.log(`Cleaned transcript: ${cleanedTranscript}`);
+
+    if (cleanedTranscript.includes('rust') || cleanedTranscript.includes('dent') || cleanedTranscript.includes('damage')) {
+      setShowImageUpload(true); // Show the upload input if keywords are detected
+      return; // Stop further processing in this case
+    }
 
     if (currentFieldKey.includes('Condition') || currentFieldKey.includes('Leak')) {
       let conditionValue;
@@ -92,8 +99,14 @@ const Engine = () => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const handleFileChange = (e) => {
+    if (e.target.files.length > 0) {
+      setFormData({ ...formData, image: e.target.files[0] });
+    }
+  };
+
   const checkIfFormComplete = (updatedData) => {
-    const allFieldsFilled = Object.values(updatedData).every(value => value !== '');
+    const allFieldsFilled = Object.values(updatedData).every(value => value !== '' || value !== null);
     console.log('Form completion status:', allFieldsFilled);
     if (allFieldsFilled) {
       sendDataToBackend(updatedData);
@@ -101,13 +114,17 @@ const Engine = () => {
   };
 
   const sendDataToBackend = async (data) => {
+    const formDataToSend = new FormData();
+    for (const key in data) {
+      if (data[key]) {
+        formDataToSend.append(key, data[key]);
+      }
+    }
+
     try {
       const response = await fetch('http://localhost:5000/api/engine', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
+        body: formDataToSend,
       });
       
       if (response.ok) {
@@ -257,6 +274,13 @@ const Engine = () => {
           onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
           rows={3}
         /><br />
+
+        {showImageUpload && (
+          <div>
+            <label>Upload Image of Damage:</label><br />
+            <input type="file" accept="image/*" onChange={handleFileChange} /><br />
+          </div>
+        )}
       </form>
       <button
         onClick={handleStartStop}
@@ -271,7 +295,6 @@ const Engine = () => {
         }}>
         {isListening ? 'Stop Listening' : 'Start Speaking'}
       </button>
-
     </div>
   );
 };

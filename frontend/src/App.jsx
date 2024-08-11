@@ -9,6 +9,7 @@ import Brake from "./Components/Brake";
 import Engine from "./Components/Engine";
 import ExportPdfComponent from './Components/ExportPDFComponent';
 import ReportForm from './Components/ReportForm'
+import Feedback from './Components/Feedback'
 
 function App() {
   const [completedSteps, setCompletedSteps] = useState({
@@ -54,6 +55,7 @@ function App() {
       <Route path="/exterior" element={<Exterior />} />
       <Route path="/brake" element={<Brake />} />
       <Route path="/engine" element={<Engine />} />
+      <Route path="/feedback" element={<Feedback />} />
       <Route path="/pdf" element={<ExportPdfComponent />} />
     </Routes>
   );

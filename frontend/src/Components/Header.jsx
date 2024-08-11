@@ -130,7 +130,7 @@ const Header = ({onFormFilled}) => {
 
   return (
     <div className="bg-yellow-400 p-8 rounded-lg shadow-md h-screen">
-      <h1 className="text-2xl font-bold text-center mb-6">HEADER</h1>
+      <h1 className="text-2xl font-bold text-center mb-6">ADD INSPECTION</h1>
       <p>Inspection Id: {inspectionId}</p>
       <p>Date: {currentDateTime.toLocaleDateString()}</p>
         <p>Time: {currentDateTime.toLocaleTimeString()}</p>

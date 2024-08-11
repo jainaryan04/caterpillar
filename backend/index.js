@@ -20,6 +20,8 @@ const db = new pg.Client({
 const app = express();
 const PORT = 5000;
 
+
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -71,6 +73,25 @@ app.post('/api/tyre', upload.none(), async(req, res) => {
     );
     res.status(200).json({ message: 'Header data received successfully!' });
 });
+
+app.post('/api/feedback', async (req, res) => {
+    const formData = req.body;
+  
+    console.log('Received feedback:', formData);
+  
+    try {
+      
+        await db.query(
+            "UPDATE inspection SET feedback = $1 WHERE id = $2",
+            [formData, index]
+        );
+  
+      res.status(200).json({ message: 'Feedback received successfully!' });
+    } catch (error) {
+      console.error('Error saving feedback:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
 
 app.post('/api/engine', upload.none(), async(req, res) => {
     const formData = req.body;
