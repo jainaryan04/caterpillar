@@ -113,7 +113,7 @@ const Engine = () => {
       if (response.ok) {
         const responseData = await response.json();
         console.log('Data successfully sent to the backend:', responseData);
-        // Optionally, you can reset the form or provide user feedback here
+        navigate('/pdf');
       } else {
         console.error('Failed to send data to the backend:', response.statusText);
       }
@@ -123,7 +123,8 @@ const Engine = () => {
   };
 
   return (
-    <div>
+    <div className="bg-yellow-400 p-8 rounded-lg shadow-md">
+      <h1 className="text-2xl font-bold text-center mb-6">ENGINE</h1>
       <form>
         <label>Rust, Dents or Damage in Engine:</label><br />
         <input

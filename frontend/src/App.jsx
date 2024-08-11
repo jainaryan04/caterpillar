@@ -7,6 +7,8 @@ import Battery from "./Components/Battery";
 import Exterior from "./Components/Exterior";
 import Brake from "./Components/Brake";
 import Engine from "./Components/Engine";
+import ExportPdfComponent from './Components/ExportPDFComponent';
+import ReportForm from './Components/ReportForm'
 
 function App() {
   const [completedSteps, setCompletedSteps] = useState({
@@ -52,6 +54,7 @@ function App() {
       <Route path="/exterior" element={<Exterior />} />
       <Route path="/brake" element={<Brake />} />
       <Route path="/engine" element={<Engine />} />
+      <Route path="/pdf" element={<ExportPdfComponent />} />
     </Routes>
   );
 }

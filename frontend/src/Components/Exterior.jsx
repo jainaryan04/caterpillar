@@ -25,6 +25,11 @@ const Exterior = () => {
     const fields = Object.keys(formData);
     const currentFieldKey = fields[currentField];
 
+    if (!cleanedTranscript) {
+      console.log('Transcript is empty or not recognized.');
+      return;
+    }
+
     if (currentFieldKey === 'exteriorDamage' || currentFieldKey === 'oilLeakSuspension') {
       let value;
       if (cleanedTranscript.includes('yes')) {
@@ -34,17 +39,29 @@ const Exterior = () => {
       }
 
       if (value) {
-        setFormData({ ...formData, [currentFieldKey]: value });
-        setCurrentField((prevField) => (prevField + 1) % fields.length);
+        setFormData(prevFormData => ({
+          ...prevFormData,
+          [currentFieldKey]: value
+        }));
+        setCurrentField(prevField => prevField + 1);
+        resetTranscript(); 
+      } else {
+        console.log('Condition value not recognized or empty');
       }
     } else {
       if (cleanedTranscript) {
-        setFormData({ ...formData, [currentFieldKey]: cleanedTranscript });
-        setCurrentField((prevField) => (prevField + 1) % fields.length);
+        setFormData(prevFormData => ({
+          ...prevFormData,
+          [currentFieldKey]: cleanedTranscript,
+        }));
+        setCurrentField(prevField => prevField + 1);
+        resetTranscript(); 
+      } else {
+        console.log('Transcript not recognized for text input');
       }
     }
-    resetTranscript(); // Clear the transcript after processing
-    checkIfFormComplete(formData, currentField, fields.length);
+
+    checkIfFormComplete(formData, currentField + 1, fields.length);
   };
 
   const handleStartStop = () => {
@@ -57,7 +74,7 @@ const Exterior = () => {
 
   const checkIfFormComplete = (updatedData, currentIndex, totalFields) => {
     const allFieldsFilled = Object.values(updatedData).every(value => value !== '');
-    if (currentIndex === totalFields - 1 && allFieldsFilled) {
+    if (currentIndex === totalFields) {
       console.log("Form completed successfully");
       sendDataToBackend(updatedData);
     } else {
@@ -78,7 +95,7 @@ const Exterior = () => {
       if (response.ok) {
         const responseData = await response.json();
         console.log('Data successfully sent to the backend:', responseData);
-        navigate('/brake'); // Navigate to the next page or component
+        navigate('/brake'); 
       } else {
         console.error('Failed to send data to the backend:', response.statusText);
       }
@@ -88,7 +105,8 @@ const Exterior = () => {
   };
 
   return (
-    <div>
+    <div className="bg-yellow-400 p-8 rounded-lg shadow-md">
+      <h1 className="text-2xl font-bold text-center mb-6">EXTERIOR</h1>
       <form>
         <label>Rust, Dent or Damage to Exterior:</label><br />
         <input

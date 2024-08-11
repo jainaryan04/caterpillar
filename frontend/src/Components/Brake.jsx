@@ -31,14 +31,14 @@ const Brakes = () => {
 
     let value;
     if (['brakeFluidLevel', 'brakeConditionFront', 'brakeConditionRear', 'emergencyBrake'].includes(currentFieldKey)) {
-      // Handle radio button fields
+      
       if (cleanedTranscript.includes('good')) {
         value = 'Good';
       } else if (cleanedTranscript.includes('ok')) {
         value = 'Ok';
       } else if (cleanedTranscript.includes('low')) {
         value = 'Low';
-      } else if (cleanedTranscript.includes('needs replacement')) {
+      } else if (cleanedTranscript.includes('replacement')) {
         value = 'Needs Replacement';
       }
 
@@ -53,7 +53,7 @@ const Brakes = () => {
         setCurrentField((prevField) => (prevField + 1) % fields.length);
       }
     } else {
-      // Handle text input fields
+      
       if (cleanedTranscript) {
         console.log(`Setting ${currentFieldKey} to ${cleanedTranscript}`);
         setFormData((prevData) => {
@@ -111,7 +111,8 @@ const Brakes = () => {
   };
 
   return (
-    <div>
+    <div className="bg-yellow-400 p-8 rounded-lg shadow-md">
+      <h1 className="text-2xl font-bold text-center mb-6">BRAKE</h1>
       <form>
         <label>Brake Fluid level:</label><br />
         <input

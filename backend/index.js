@@ -24,28 +24,41 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+
+const result=await db.query("SELECT * from inspection") 
+let index=result.rows[0].id+1;
+console.log(index)
+
 app.get('/id',async(req,res)=>{
     const result=await db.query("SELECT * from inspection") 
     let index=result.rows[0].id+1;
-    await db.query(
-        "INSERT INTO inspection(id) VALUES($1)",
-        [index]
-    );
+    
     res.json({index})
 })
 
-const result=await db.query("SELECT * from inspection") 
-    let index=result.rows[0].id+1;
+app.get('/api/reports/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+      const report = await db.query('SELECT * FROM inspection WHERE id = $1', [id]);
+      if (report.rows.length > 0) {
+        res.json(report.rows[0]);
+      } else {
+        res.status(404).json({ message: 'Report not found' });
+      }
+    } catch (error) {
+      console.error('Error fetching report:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
 
 
 app.post('/api/header', upload.none(), async(req, res) => {
     const formData = req.body;
     console.log('Received form data:', formData);
     await db.query(
-        "UPDATE inspection SET header = $1 WHERE id = $2",
-        [formData.header, index]
-    );
-    
+        "INSERT INTO inspection (id, header) VALUES ($1, $2)",
+        [index, formData]
+    );    
     res.status(200).json({ message: 'Header data received successfully!' });
 });
 
@@ -54,7 +67,7 @@ app.post('/api/tyre', upload.none(), async(req, res) => {
     console.log('Received form data:', formData);
     await db.query(
         "UPDATE inspection SET tyre = $1 WHERE id = $2",
-        [formData.tyre, index]
+        [formData, index]
     );
     res.status(200).json({ message: 'Header data received successfully!' });
 });
@@ -64,7 +77,7 @@ app.post('/api/engine', upload.none(), async(req, res) => {
     console.log('Received form data:', formData);
     await db.query(
         "UPDATE inspection SET engine = $1 WHERE id = $2",
-        [formData.engine, index]
+        [formData, index]
     );
     res.status(200).json({ message: 'Engine data received successfully!' });
 });
@@ -74,7 +87,7 @@ app.post('/api/brake', upload.none(), async(req, res) => {
     console.log('Received form data:', formData);
     await db.query(
         "UPDATE inspection SET brake = $1 WHERE id = $2",
-        [formData.brake, index]
+        [formData, index]
     );
     res.status(200).json({ message: 'Brake data received successfully!' });
 });
@@ -84,7 +97,7 @@ app.post('/api/battery', upload.none(), async(req, res) => {
     console.log('Received form data:', formData);
     await db.query(
         "UPDATE inspection SET battery = $1 WHERE id = $2",
-        [formData.battery, index]
+        [formData, index]
     );
     res.status(200).json({ message: 'Battery data received successfully!' });
 });
@@ -94,7 +107,7 @@ app.post('/api/exterior', upload.none(), async(req, res) => {
     console.log('Received form data:', formData);
     await db.query(
         "UPDATE inspection SET exterior = $1 WHERE id = $2",
-        [formData.exterior, index]
+        [formData, index]
     );
     res.status(200).json({ message: 'Exterior data received successfully!' });
 });

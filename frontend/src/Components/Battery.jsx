@@ -26,7 +26,6 @@ const Battery = () => {
 
   const moveToNextField = () => {
     const cleanedTranscript = transcript ? transcript.replace(/record/gi, '').trim().toLowerCase() : '';
-
     if (!cleanedTranscript) {
       console.log('Transcript is empty or not recognized.');
       return;
@@ -57,7 +56,7 @@ const Battery = () => {
             value: conditionValue
           }
         });
-        resetTranscript(); // Clear the transcript after processing
+        resetTranscript(); 
       } else {
         console.log('Condition value not recognized or empty');
       }
@@ -71,7 +70,7 @@ const Battery = () => {
           return updatedData;
         });
         setCurrentField(prevField => prevField + 1);
-        resetTranscript(); // Clear the transcript after processing
+        resetTranscript();
       } else {
         console.log('Transcript not recognized for text input');
       }
@@ -82,7 +81,7 @@ const Battery = () => {
 
   const checkIfFormComplete = (prev) => {
     const allFieldsFilled = Object.values(formData).every(value => value !== '');
-    if (prev === 6) { // Adjust this based on the number of fields
+    if (prev === 6) { 
       sendDataToBackend(formData);
     } else {
       console.log('Form is not complete');
@@ -102,7 +101,7 @@ const Battery = () => {
       if (response.ok) {
         const responseData = await response.json();
         console.log('Data successfully sent to the backend:', responseData);
-        navigate('/exterior'); // Assuming '/brakes' is the next component's route
+        navigate('/exterior');
       } else {
         console.error('Failed to send data to the backend:', response.statusText);
       }
@@ -130,7 +129,8 @@ const Battery = () => {
   };
 
   return (
-    <div>
+    <div className="bg-yellow-400 p-8 rounded-lg shadow-md">
+      <h1 className="text-2xl font-bold text-center mb-6">BATTERY</h1>
       <form>
         <textarea
           placeholder="Battery Make (e.g., CAT, ABC, XYZ)"
